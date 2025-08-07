@@ -1,4 +1,6 @@
 body {
+  padding: 0;
+  box-sizing: border-box;
   margin: 0;
   font-family: Arial, sans-serif;
   background-color: #f2f4f7;

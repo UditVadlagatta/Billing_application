@@ -27,7 +27,7 @@ body, html {
   color: white;
   text-align: center;
   animation: fadeIn 1.5s ease-in forwards;
-  opacity: 0;
+  /* opacity: 0; */
 }
 
 .content h5 {

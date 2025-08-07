@@ -1,0 +1,22 @@
+.subNavbar{
+/* background-color: red; */
+width: 98%;
+height: 3rem;
+display: flex;
+justify-content: center;
+align-items: center;
+ gap: 200px;
+  background-color: #f0f0f0;
+   padding: 10px;
+   position: sticky;
+  top: 70px;
+  background-color: #ffffff;
+  z-index: 1000; 
+  padding: 10px 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
+  }
+
+.subNavbar a{
+    text-decoration: none;
+    font-size: 1.5rem;
+}

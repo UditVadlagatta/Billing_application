@@ -8,6 +8,8 @@ import Logout from './Components/Logout';
 import Registration from './Components/Registration';
 import './App.css';
 
+import MainDashboard from './Components/MainDashboard/MainDashboard';
+
 function App() {
   const location = useLocation();
   const nodeRef = useRef(null); 
@@ -15,6 +17,7 @@ function App() {
   return (
     <>
       <Nav />
+      
       <TransitionGroup>
         <CSSTransition
           key={location.key}
@@ -28,6 +31,7 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/logout" element={<Logout />} />
               <Route path="/reg" element={<Registration />} />
+              <Route path="/MainDashboard/*" element={<MainDashboard />} />
             </Routes>
           </div>
         </CSSTransition>
