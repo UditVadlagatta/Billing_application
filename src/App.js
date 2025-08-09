@@ -30,7 +30,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/logout" element={<Logout />} />
-              <Route path="/reg" element={<Registration />} />
+              <Route path="/register" element={<Registration />} />
               <Route path="/MainDashboard/*" element={<MainDashboard />} />
             </Routes>
           </div>
