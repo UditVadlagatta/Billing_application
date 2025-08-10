@@ -105,7 +105,7 @@ const App = () => {
       </div>
 
       {/* Footer */}
-      <footer className="footer">
+      <footer className="footer" style={{marginBottom:'-16px'}}>
         <p>&copy; 2025 MyCompany. All rights reserved.</p>
       </footer>
     </div>
