@@ -1,23 +1,24 @@
 import React from 'react';
 import { Link, Routes, Route } from 'react-router-dom';
-import Dashboard from './Dashboard';
+import Dashboard from './Dashboard2';
 import Customer from './Customer';
 import Product from './Product';
-import Style from './MainDashboard.module.css'
+import Style from './MainDashboard2.module.css'
 import Invoice from './Invoice';
 import Report from './Report';
 
-const MainDashboard = () => {
+const MainDashboard2 = () => {
   return (
-    <div>
+    <div> 
       <nav className={Style.subNavbar}>
-        <Link to="/MainDashboard/dashboard">Dashboard</Link>
-        <Link to="/MainDashboard/customer">Customer</Link>
-        <Link to="/MainDashboard/product">Product</Link>
-        <Link to="/MainDashboard/invoice">Invoice</Link>
-        <Link to="/MainDashboard/report">Report</Link>
+        
+        <Link to="/MainDashboard2/dashboard">Dashboard</Link>
+        <Link to="/MainDashboard2/customer">Customer</Link>
+        <Link to="/MainDashboard2/product">Product</Link>
+        <Link to="/MainDashboard2/invoice">Invoice</Link>
+        <Link to="/MainDashboard2/report">Reporthi</Link>
       </nav>
-      Admin Login
+      User Login
 
       <div >
         <Routes>
@@ -32,4 +33,4 @@ const MainDashboard = () => {
   );
 };
 
-export default MainDashboard;
+export default MainDashboard2;

@@ -9,6 +9,7 @@ import Registration from './Components/Registration';
 import './App.css';
 
 import MainDashboard from './Components/MainDashboard/MainDashboard';
+import MainDashboard2 from './Components/MainDashboard2/MainDashboard2';
 
 function App() {
   const location = useLocation();
@@ -32,6 +33,7 @@ function App() {
               <Route path="/logout" element={<Logout />} />
               <Route path="/register" element={<Registration />} />
               <Route path="/MainDashboard/*" element={<MainDashboard />} />
+              <Route path="/MainDashboard2/*" element={<MainDashboard2 />} />
             </Routes>
           </div>
         </CSSTransition>

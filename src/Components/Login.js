@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import '../Style/Login.css';
 import LoginBg from '../Image/Login.png';
+import MainDashboard2 from './MainDashboard2/Dashboard2';
 
 // Main application component
 const App = () => {
@@ -44,7 +45,8 @@ const App = () => {
           window.location.href = './MainDashboard/Dashboard'
         } else {
           // Redirect to the regular user dashboard
-          window.location.href = './MainDashboard/Dashboard';
+          window.location.href = './MainDashboard2/MainDashboard2';
+        // window.location.href = {MainDashboard2};
         }
       } else {
         setMessage(data.message || 'Login failed. Please check your credentials.');
