@@ -1,861 +1,806 @@
-// ```javascript
-import { useState, useEffect } from 'react';
-import './InvoiceStyles.css';
- 
-// The main Invoice component for creating, managing, and viewing invoices.
+import React, { useEffect, useState } from "react";
+import "./Style.css";
+
 const Invoice = () => {
-    // --- State variables ---
-    const [invoices, setInvoices] = useState([]);
-    const [lineItems, setLineItems] = useState([]);
-    const [products, setProducts] = useState([]);
-    const [customers, setCustomers] = useState([]);
-    const [editingId, setEditingId] = useState(null);
-    const [previewInvoice, setPreviewInvoice] = useState(null);
-    const [invoiceToDelete, setInvoiceToDelete] = useState(null);
-    const [invoiceToPay, setInvoiceToPay] = useState(null);
-    const [payAmount, setPayAmount] = useState('');
-    const [filteredInvoices, setFilteredInvoices] = useState([]);
-    const [customerName, setCustomerName] = useState('');
-    const [customerEmail, setCustomerEmail] = useState('');
-    const [customerPhone, setCustomerPhone] = useState('');
-    const [customerAddress, setCustomerAddress] = useState('');
-    const [dueDate, setDueDate] = useState('');
-    const [discount, setDiscount] = useState(0);
-    const [customDesc, setCustomDesc] = useState('');
-    const [customQty, setCustomQty] = useState(1);
-    const [customPrice, setCustomPrice] = useState(0);
-    const [message, setMessage] = useState('');
-    const [searchQuery, setSearchQuery] = useState('');
-    const [showCustomItemForm, setShowCustomItemForm] = useState(false);
-    const [statusFilter, setStatusFilter] = useState('all');
-    const [isProductLoading, setIsProductLoading] = useState(false);
-    const [isInvoiceLoading, setIsInvoiceLoading] = useState(false);
-    const [isCustomerLoading, setIsCustomerLoading] = useState(false);
-    const [productQuantities, setProductQuantities] = useState({});
+  const [invoiceItems, setInvoiceItems] = useState([]);
+  const [customItem, setCustomItem] = useState({ name: "", price: "", quantity: "" });
 
-    // Unique app ID for localStorage. In a real app, this would be dynamic.
-    const appId = 'default-app-id';
+  // Customer fields
+  const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerAddress, setCustomerAddress] = useState("");
 
-    // --- Helper Functions ---
+  // Customer autocomplete
+  const [suggestions, setSuggestions] = useState([]);
+  const [allCustomers, setAllCustomers] = useState([]);
 
-    /**
-     * Retrieves a CSS class for an invoice status.
-     * @param {string} status - The payment status ('paid', 'partial', 'unpaid').
-     * @returns {string} The CSS class name.
-     */
-    const getStatusClass = (status) => {
-        switch (status) {
-            case 'paid':
-                return 'status-paid';
-            case 'partial':
-                return 'status-partial';
-            case 'unpaid':
-                return 'status-unpaid';
-            default:
-                return 'status-default';
+  // Products & quantities
+  const [products, setProducts] = useState([]);
+  const [quantities, setQuantities] = useState({});
+
+  // Invoice lines & totals
+  const [invoiceLines, setInvoiceLines] = useState([]);
+  const [discountPct, setDiscountPct] = useState(0);
+
+  // for right side
+  const [savedInvoices, setSavedInvoices] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // New state for viewing an invoice
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
+
+  // State for recording a payment
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("Cash");
+
+  // At the top of your component, with other state variables
+const [transactionStatus, setTransactionStatus] = useState("");
+
+  const subtotal = invoiceLines.reduce(
+    (sum, line) => sum + Number(line.price) * Number(line.quantity),
+    0
+  );
+  const discountAmount = subtotal * (Number(discountPct) / 100);
+  const total = subtotal - discountAmount;
+
+  // Fetch all customers on mount
+  useEffect(() => {
+    fetch("http://localhost:8080/api/customers")
+      .then((res) => res.json())
+      .then((data) => setAllCustomers(Array.isArray(data) ? data : []))
+      .catch((err) => console.error("Error fetching customers:", err));
+  }, []);
+
+  // Fetch products from API
+  useEffect(() => {
+    fetch("http://localhost:8080/api/products")
+      .then((res) => res.json())
+      .then((data) => setProducts(data))
+      .catch((err) => console.error("Error fetching products:", err));
+  }, []);
+
+  // Autocomplete: filter suggestions when typing name
+  const handleNameChange = (e) => {
+    const value = e.target.value;
+    setCustomerName(value);
+
+    if (value.trim().length > 0) {
+      const filtered = allCustomers.filter((cust) =>
+        (cust.name || "")
+          .toString()
+          .toLowerCase()
+          .includes(value.toLowerCase())
+      );
+      setSuggestions(filtered);
+    } else {
+      setSuggestions([]);
+    }
+  };
+
+  // Autocomplete: select a customer
+  const handleSelectCustomer = (cust) => {
+    setCustomerName(cust.name || "");
+    setCustomerEmail(cust.email || "");
+    setCustomerPhone(cust.phone || "");
+    setCustomerAddress(cust.address || "");
+    setSuggestions([]);
+  };
+
+  // Quantity edits per product
+  const handleQuantityChange = (productId, value) => {
+    const qty = value === "" ? "" : Math.max(1, Number(value));
+    setQuantities((prev) => ({
+      ...prev,
+      [productId]: qty,
+    }));
+  };
+
+  // Add product or custom item to invoice
+  const addToInvoice = (item) => {
+    if (item.id && !item.id.toString().startsWith("custom-")) {
+      const raw = quantities[item.id];
+      const qty = Number(raw);
+      if (!qty || qty <= 0) return;
+
+      setInvoiceLines((prev) => {
+        const existing = prev.find((l) => l.id === item.id);
+        if (existing) {
+          return prev.map((l) =>
+            l.id === item.id
+              ? { ...l, quantity: Number(l.quantity) + qty }
+              : l
+          );
         }
+        return [
+          ...prev,
+          {
+            id: item.id,
+            name: item.name,
+            price: Number(item.price),
+            quantity: qty,
+          },
+        ];
+      });
+
+      setQuantities((prev) => ({ ...prev, [item.id]: "" }));
+    } else {
+      if (!item.name || !item.price || !item.quantity) return;
+
+      setInvoiceLines((prev) => [
+        ...prev,
+        {
+          id: item.id || `custom-${Date.now()}`,
+          name: item.name,
+          price: Number(item.price),
+          quantity: Number(item.quantity),
+        },
+      ]);
+
+      setCustomItem({ name: "", price: "", quantity: "" });
+    }
+  };
+// download
+const printInvoice = () => {
+  const printContent = document.getElementById("previewArea").innerHTML;
+  const originalContent = document.body.innerHTML;
+
+  // Replace body with only the preview content
+  document.body.innerHTML = printContent;
+
+  // Trigger print
+  window.print();
+
+  // Restore original content after printing
+  document.body.innerHTML = originalContent;
+  window.location.reload(); // reload to restore React state
+};
+
+  // Remove a line
+  const removeLine = (id) => {
+    setInvoiceLines((prev) => prev.filter((l) => l.id !== id));
+  };
+
+  // Update line quantity
+  const updateLineQty = (id, qty) => {
+    const quantity = Number(qty);
+    if (quantity <= 0) return;
+    setInvoiceLines((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, quantity } : l))
+    );
+  };
+
+  // Save Invoice
+  const saveInvoice = () => {
+    if (invoiceLines.length === 0) return;
+    const newInvoice = {
+      id: Date.now(),
+      customerName,
+      customerEmail,
+      customerPhone,
+      customerAddress,
+      lines: invoiceLines,
+      status: "Unpaid", // Add a status to the new invoice
+      subtotal: subtotal,
+      discount: discountAmount,
+      total: total,
     };
+    setSavedInvoices((prev) => [...prev, newInvoice]);
+    setInvoiceLines([]);
+    setCustomerName("");
+    setCustomerEmail("");
+    setCustomerPhone("");
+    setCustomerAddress("");
+  };
 
-    /**
-     * Calculates the subtotal and total for the current invoice line items.
-     * @param {Array} currentLineItems - An array of line items.
-     * @param {number} currentDiscount - The discount percentage.
-     * @returns {{subtotal: number, total: number}} The calculated totals.
-     */
-    const calculateTotals = (currentLineItems, currentDiscount) => {
-        const subtotal = currentLineItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-        const total = subtotal - (subtotal * (currentDiscount / 100));
-        return { subtotal, total };
-    };
+  // Export JSON
+  const exportJson = () => {
+    const blob = new Blob([JSON.stringify(savedInvoices, null, 2)], {
+      type: "application/json",
+    });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "invoices.json";
+    link.click();
+  };
 
-    /**
-     * Adds a pre-defined product to the invoice line items.
-     * @param {string} id - The product ID.
-     * @param {string} desc - The product description.
-     * @param {number} price - The price per unit.
-     * @param {number} qty - The quantity.
-     */
-    const handleAddProductLine = (id, desc, price, qty) => {
-        const newLineItems = [...lineItems];
-        const existingLineIndex = newLineItems.findIndex(item => item.id === id);
+  // Filter saved invoices
+  const filteredInvoices = savedInvoices.filter(
+    (inv) =>
+      inv.id.toString().includes(searchTerm) ||
+      inv.lines.some((l) =>
+        l.name.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+  );
 
-        if (existingLineIndex !== -1) {
-            newLineItems[existingLineIndex].quantity += qty;
-        } else {
-            newLineItems.push({ id, description: desc, quantity: qty, price: parseFloat(price.toFixed(2)) });
-        }
-        setLineItems(newLineItems);
-    };
+  const markAsPaid = (id) => {
+    setSavedInvoices(prev =>
+      prev.map(inv =>
+        inv.id === id ? { ...inv, status: 'Paid' } : inv
+      )
+    );
+  };
 
-    /**
-     * Adds a custom-defined product to the invoice line items.
-     */
-    const handleAddCustomLine = () => {
-        if (!customDesc.trim()) {
-            setMessage("Description required for custom item.");
-            return;
-        }
-        setLineItems([...lineItems, { description: customDesc, quantity: parseInt(customQty), price: parseFloat(customPrice).toFixed(2) }]);
-        setCustomDesc('');
-        setCustomQty(1);
-        setCustomPrice(0);
-        setMessage('');
-        setShowCustomItemForm(false);
-    };
+  const viewInvoice = (id) => {
+    const invoice = savedInvoices.find(inv => inv.id === id);
+    setSelectedInvoice(invoice);
+    // Reset payment form when viewing a new invoice
+    setPaymentAmount("");
+    setPaymentMethod("Cash");
+  };
 
-    /**
-     * Handles the deletion of a line item.
-     * @param {number} index - The index of the line item to delete.
-     */
-    const handleDeleteLine = (index) => {
-        setLineItems(lineItems.filter((_, i) => i !== index));
-    };
+  const editInvoice = (id) => {
+    const invoiceToEdit = savedInvoices.find(inv => inv.id === id);
+    if (invoiceToEdit) {
+      setCustomerName(invoiceToEdit.customerName || "");
+      setCustomerEmail(invoiceToEdit.customerEmail || "");
+      setCustomerPhone(invoiceToEdit.customerPhone || "");
+      setCustomerAddress(invoiceToEdit.customerAddress || "");
+      setInvoiceLines(invoiceToEdit.lines);
+      setSavedInvoices(prev => prev.filter(inv => inv.id !== id));
+      setSelectedInvoice(null); // Clear preview when editing
+      alert(`Invoice #${id} has been loaded for editing.`);
+    }
+  };
 
-    /**
-     * Saves a new invoice or updates an existing one.
-     */
-    const handleSaveInvoice = async (e) => {
-    e.preventDefault();
-    console.log('editingId:', editingId); // Debug
-    if (!customerName || lineItems.length === 0) {
-        setMessage("Customer name and at least one line item required.");
+  const deleteInvoice = (id) => {
+    if (window.confirm(`Are you sure you want to delete Invoice #${id}?`)) {
+      setSavedInvoices(prev => prev.filter(inv => inv.id !== id));
+      setSelectedInvoice(null); // Clear preview if deleted invoice was selected
+    }
+  };
+
+  const recordPayment = () => {
+    if (!selectedInvoice) {
+      alert("No invoice selected.");
+      return;
+    }
+    const amount = Number(paymentAmount);
+    if (!amount || amount <= 0) {
+      alert("Please enter a valid payment amount.");
+      return;
+    }
+    const newBalance = (selectedInvoice.balanceDue || selectedInvoice.total) - amount;
+
+    if (newBalance < 0) {
+        alert("Payment amount exceeds the balance due.");
         return;
     }
+    // setTransactionStatus(`Payment of ₹${amount.toFixed(2)} recorded successfully.`);
+    setPaymentAmount("");
 
-        const newInvoice = {
-            customerName,
-            customerEmail,
-            customerPhone,
-            customerAddress,
-            dueDate,
-            discount: parseFloat(discount) || 0,
-            status: editingId ? (invoices.find(inv => inv.id === editingId)?.status || "unpaid") : "unpaid",
-            lineItems: lineItems.map(item => ({
-                description: item.description,
-                quantity: item.quantity,
-                price: parseFloat(item.price),
-            })),
-        };
 
-        const url = editingId ? `http://localhost:8080/api/invoices/${editingId}` : 'http://localhost:8080/api/invoices';
-        const method = editingId ? 'PUT' : 'POST';
+    const updatedInvoice = {
+        ...selectedInvoice,
+        status: newBalance <= 0 ? 'Paid' : 'Partially Paid',
+        balanceDue: newBalance,
+        payments: [
+            ...(selectedInvoice.payments || []),
+            {
+              id: Date.now(), // Unique ID for each payment
+                amount: amount,
+                method: paymentMethod,
+                date: new Date().toLocaleDateString(),
+            },
+        ],
 
-        try {
-            const response = await fetch(url, {
-                method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(newInvoice),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to save invoice');
-            }
-
-            const savedInvoice = await response.json();
-            if (editingId) {
-                setInvoices(invoices.map(inv => inv.id === editingId ? savedInvoice : inv));
-            } else {
-                setInvoices([...invoices, savedInvoice]);
-            }
-            handleClearForm();
-            setMessage('Invoice saved successfully.');
-        } catch (error) {
-            console.error('Error saving invoice:', error);
-            setMessage(`Error saving invoice: ${error.message}`);
-        }
     };
 
-    /**
-     * Clears the form inputs.
-     */
-    const handleClearForm = () => {
-        setCustomerName('');
-        setCustomerEmail('');
-        setCustomerPhone('');
-        setCustomerAddress('');
-        setDueDate('');
-        setDiscount(0);
-        setLineItems([]);
-        setEditingId(null);
-        setPreviewInvoice(null);
-        setMessage('');
-        setShowCustomItemForm(false);
-        setProductQuantities({});
-    };
-
-    /**
-     * Loads a selected invoice into the form for editing.
-     * @param {object} invoice - The invoice to edit.
-     */
-    const handleEditInvoice = (invoice) => {
-        setEditingId(invoice.id);
-        setCustomerName(invoice.customerName || '');
-        setCustomerEmail(invoice.customerEmail || '');
-        setCustomerPhone(invoice.customerPhone || '');
-        setCustomerAddress(invoice.customerAddress || '');
-        setDueDate(invoice.dueDate || '');
-        setDiscount(invoice.discount || 0);
-
-        if (invoice.lineItems && Array.isArray(invoice.lineItems)) {
-            const newLineItems = invoice.lineItems.map(item => ({
-                id: item.id || null,
-                description: item.description || '',
-                quantity: item.quantity || 0,
-                price: parseFloat(item.price) || 0,
-            }));
-            setLineItems(newLineItems);
-
-            const newProductQuantities = {};
-            newLineItems.forEach(item => {
-                if (item.id) {
-                    newProductQuantities[item.id] = item.quantity;
-                }
-            });
-            setProductQuantities(newProductQuantities);
-        } else {
-            setLineItems([]);
-            setProductQuantities({});
-        }
-
-        setPreviewInvoice(null);
-    };
-
-    /**
-     * Triggers the delete confirmation modal.
-     * @param {object} invoice - The invoice to delete.
-     */
-    const handleDeleteInvoice = (invoice) => {
-        setInvoiceToDelete(invoice);
-    };
-
-    /**
-     * Confirms and performs the deletion.
-     */
-    const handleConfirmDelete = async () => {
-        if (!invoiceToDelete) return;
-
-        try {
-            const response = await fetch(`http://localhost:8080/api/invoices/${invoiceToDelete.id}`, {
-                method: 'DELETE',
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to delete invoice');
-            }
-
-            setInvoices(invoices.filter(inv => inv.id !== invoiceToDelete.id));
-            setInvoiceToDelete(null);
-            setMessage('Invoice deleted successfully.');
-        } catch (error) {
-            console.error('Error deleting invoice:', error);
-            setMessage(`Error deleting invoice: ${error.message}`);
-        }
-    };
-
-    /**
-     * Closes the delete confirmation modal.
-     */
-    const handleCancelDelete = () => {
-        setInvoiceToDelete(null);
-    };
-
-    /**
-     * Handles recording a payment for an invoice.
-     */
-    const handlePayment = async () => {
-        console.log('handlePayment triggered', { invoiceToPay, payAmount });
-
-        if (!invoiceToPay) {
-            setMessage('No invoice selected for payment.');
-            return;
-        }
-
-        const paymentAmount = parseFloat(payAmount);
-        if (!payAmount || isNaN(paymentAmount) || paymentAmount <= 0) {
-            setMessage('Please enter a valid payment amount.');
-            return;
-        }
-
-        if (!invoiceToPay.lineItems || !Array.isArray(invoiceToPay.lineItems)) {
-            setMessage('Invalid invoice line items data.');
-            return;
-        }
-
-        const totalAmount = invoiceToPay.lineItems.reduce((sum, item) => {
-            if (!item.quantity || !item.price) {
-                console.warn('Invalid line item:', item);
-                return sum;
-            }
-            return sum + item.quantity * item.price;
-        }, 0) * (1 - (invoiceToPay.discount || 0) / 100);
-
-        try {
-            // Create a payment record
-            const payment = {
-                amount: paymentAmount,
-                paymentDate: new Date().toISOString().split('T')[0],
-                method: 'Manual', // Adjust based on your requirements
-                invoiceId: invoiceToPay.id,
-            };
-
-            const paymentResponse = await fetch('http://localhost:8080/api/payments', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payment),
-            });
-
-            if (!paymentResponse.ok) {
-                const errorData = await paymentResponse.json();
-                throw new Error(errorData.message || 'Failed to record payment');
-            }
-
-            // Fetch updated invoice to get the latest payments and status
-            const invoiceResponse = await fetch(`http://localhost:8080/api/invoices/${invoiceToPay.id}`);
-            if (!invoiceResponse.ok) {
-                throw new Error('Failed to fetch updated invoice');
-            }
-            const updatedInvoice = await invoiceResponse.json();
-
-            setInvoices(invoices.map(inv => (inv.id === updatedInvoice.id ? updatedInvoice : inv)));
-            setInvoiceToPay(null);
-            setPayAmount('');
-            setMessage('Payment recorded successfully.');
-        } catch (error) {
-            console.error('Error making payment:', error);
-            setMessage(`Error making payment: ${error.message}`);
-        }
-    };
-
-    // --- Data Fetching and Initialization ---
-    useEffect(() => {
-        const fetchInvoices = async () => {
-            setIsInvoiceLoading(true);
-            try {
-                const response = await fetch('http://localhost:8080/api/invoices');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch invoices');
-                }
-                const data = await response.json();
-                setInvoices(data);
-            } catch (error) {
-                console.error('Error fetching invoices:', error);
-                setMessage('Error fetching invoices: ' + error.message);
-            } finally {
-                setIsInvoiceLoading(false);
-            }
-        };
-
-        const fetchProducts = async () => {
-            setIsProductLoading(true);
-            try {
-                const response = await fetch('http://localhost:8080/api/products');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch products');
-                }
-                const data = await response.json();
-                setProducts(data);
-            } catch (error) {
-                console.error('Error fetching products:', error);
-                setMessage('Error fetching products: ' + error.message);
-            } finally {
-                setIsProductLoading(false);
-            }
-        };
-
-        const fetchCustomers = async () => {
-            setIsCustomerLoading(true);
-            try {
-                const response = await fetch('http://localhost:8080/api/customers');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch customers');
-                }
-                const data = await response.json();
-                setCustomers(data);
-            } catch (error) {
-                console.error('Error fetching customers:', error);
-                setMessage('Error fetching customers: ' + error.message);
-            } finally {
-                setIsCustomerLoading(false);
-            }
-        };
-
-        fetchInvoices();
-        fetchProducts();
-        fetchCustomers();
-    }, []);
-
-    // Effect to filter invoices whenever the list or search query changes
-    useEffect(() => {
-        const term = searchQuery.toLowerCase();
-        let filtered = invoices.filter(inv => 
-            (inv.customerName && inv.customerName.toLowerCase().includes(term)) || 
-            (inv.id && inv.id.toString().includes(term))
-        );
-
-        if (statusFilter !== 'all') {
-            filtered = filtered.filter(inv => inv.status === statusFilter);
-        }
-        setFilteredInvoices(filtered);
-    }, [invoices, searchQuery, statusFilter]);
-
-    const { subtotal, total } = calculateTotals(lineItems, discount);
-
-    return (
-        <div className="app-container">
-            <header className="app-header">
-                <div className="header-content">
-                    <h1 className="app-title">Invoice App</h1>
-                    <button onClick={handleClearForm} className="btn-primary">
-                        New Invoice
-                    </button>
-                </div>
-            </header>
-
-            <main className="main-content">
-                <div className="invoice-form-section">
-                    <h2 className="section-title">{editingId ? `Edit Invoice #${editingId}` : "Create New Invoice"}</h2>
-                    
-                    {message && (
-                        <div className="message-box error">
-                            {message}
-                        </div>
-                    )}
-
-                    <form onSubmit={handleSaveInvoice}>
-                        {/* Customer Information */}
-                        <div className="form-section">
-                            <h3 className="section-subtitle">Customer Details</h3>
-                            <div className="form-row">
-                                <input
-                                    list="customer-names"
-                                    type="text"
-                                    placeholder="Customer Name"
-                                    value={customerName}
-                                    onChange={(e) => {
-                                        const name = e.target.value;
-                                        setCustomerName(name);
-                                        const selectedCustomer = customers.find(customer => customer.name === name);
-                                        if (selectedCustomer) {
-                                            setCustomerEmail(selectedCustomer.email || '');
-                                            setCustomerPhone(selectedCustomer.phone || '');
-                                            setCustomerAddress(selectedCustomer.address || '');
-                                        } else {
-                                            setCustomerEmail('');
-                                            setCustomerPhone('');
-                                            setCustomerAddress('');
-                                        }
-                                    }}
-                                    className="input-field"
-                                    required
-                                />
-                                <datalist id="customer-names">
-                                    {isCustomerLoading ? (
-                                        <option>Loading customers...</option>
-                                    ) : (
-                                        customers.map(customer => (
-                                            <option key={customer.id} value={customer.name} />
-                                        ))
-                                    )}
-                                </datalist>
-                                <input
-                                    type="email"
-                                    placeholder="Customer Email"
-                                    value={customerEmail}
-                                    onChange={(e) => setCustomerEmail(e.target.value)}
-                                    className="input-field"
-                                />
-                                <input
-                                    type="tel"
-                                    placeholder="Customer Phone"
-                                    value={customerPhone}
-                                    onChange={(e) => setCustomerPhone(e.target.value)}
-                                    className="input-field"
-                                />
-                                <input
-                                    type="text"
-                                    placeholder="Customer Address"
-                                    value={customerAddress}
-                                    onChange={(e) => setCustomerAddress(e.target.value)}
-                                    className="input-field"
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label className="input-label">Due Date</label>
-                                <input
-                                    type="date"
-                                    value={dueDate}
-                                    onChange={(e) => setDueDate(e.target.value)}
-                                    className="input-field"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Line Items */}
-                        <div className="form-section">
-                            <h3 className="section-subtitle">Invoice Items</h3>
-                            <ul className="line-items-list">
-                                {lineItems.map((item, index) => (
-                                    <li key={index} className="line-item">
-                                        <div className="line-item-details">
-                                            <p className="line-item-desc">{item.description}</p>
-                                            <p className="line-item-qty-price">{item.quantity} x ${parseFloat(item.price).toFixed(2)}</p>
-                                        </div>
-                                        <button 
-                                            type="button" 
-                                            onClick={() => handleDeleteLine(index)} 
-                                            className="delete-line-btn"
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="icon-delete" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 112 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" />
-                                            </svg>
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-
-                            {/* Product Select */}
-                            <div className="product-select-section">
-                                <h4 className="product-select-title">Add from Products</h4>
-                                <div className="product-list">
-                                    {isProductLoading ? (
-                                        <p>Loading products...</p>
-                                    ) : (
-                                        products.map(product => (
-                                            <div key={product.id} className="product-row">
-                                                <div className="product-info">
-                                                    <p>{product.name}</p>
-                                                    <span className="price-tag">${parseFloat(product.price).toFixed(2)}</span>
-                                                </div>
-                                                <div className="product-actions">
-                                                    <input
-                                                        type="number"
-                                                        value={productQuantities[product.id] || 1}
-                                                        onChange={(e) => setProductQuantities({
-                                                            ...productQuantities,
-                                                            [product.id]: parseInt(e.target.value, 10) || 1
-                                                        })}
-                                                        min="1"
-                                                        className="product-qty-input"
-                                                    />
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={() => handleAddProductLine(product.id, product.name, product.price, productQuantities[product.id] || 1)} 
-                                                        className="add-product-btn"
-                                                    >
-                                                        Add
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Custom Item Form */}
-                            <div className="custom-item-section">
-                                <h4 className="custom-item-title">Add Custom Item</h4>
-                                {showCustomItemForm ? (
-                                    <>
-                                        <div className="custom-item-form-row">
-                                            <input
-                                                type="text"
-                                                placeholder="Description"
-                                                value={customDesc}
-                                                onChange={(e) => setCustomDesc(e.target.value)}
-                                                className="input-field"
-                                            />
-                                            <input
-                                                type="number"
-                                                placeholder="Qty"
-                                                value={customQty}
-                                                onChange={(e) => setCustomQty(e.target.value)}
-                                                className="input-field-small"
-                                            />
-                                            <input
-                                                type="number"
-                                                placeholder="Price"
-                                                value={customPrice}
-                                                onChange={(e) => setCustomPrice(e.target.value)}
-                                                className="input-field-small"
-                                                step="0.01"
-                                            />
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={handleAddCustomLine}
-                                            className="btn-secondary"
-                                        >
-                                            Add Item
-                                        </button>
-                                    </>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowCustomItemForm(true)}
-                                        className="btn-secondary"
-                                    >
-                                        Add Custom Item
-                                    </button>
-                                )}
-                            </div>
-
-                            {/* Totals */}
-                            <div className="totals-section">
-                                <h4 className="totals-label">Discount (%)</h4>
-                                <input
-                                    type="number"
-                                    value={discount}
-                                    onChange={(e) => setDiscount(e.target.value)}
-                                    className="input-field"
-                                    step="0.01"
-                                />
-                                <div className="totals-display">
-                                    <p className="subtotal">Subtotal: ${subtotal.toFixed(2)}</p>
-                                    <p className="total">Total: ${total.toFixed(2)}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="form-actions">
-                            <button
-                                type="submit"
-                                className="btn-save"
-                            >
-                                {editingId ? "Update Invoice" : "Save Invoice"}
-                            </button>
-                            {editingId && (
-                                <button
-                                    type="button"
-                                    onClick={handleClearForm}
-                                    className="btn-cancel"
-                                >
-                                    Cancel Edit
-                                </button>
-                            )}
-                        </div>
-                    </form>
-                </div>
-
-                {/* Invoice List */}
-                <div className="invoice-list-section">
-                    <div className="list-header">
-                        <h2 className="section-title">Invoices</h2>
-                        <div className="list-controls">
-                            <select 
-                                className="filter-select"
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                            >
-                                <option value="all">All</option>
-                                <option value="paid">Paid</option>
-                                <option value="partial">Partial</option>
-                                <option value="unpaid">Unpaid</option>
-                            </select>
-                            <input 
-                                type="text"
-                                placeholder="Search by customer or ID"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="search-input"
-                            />
-                        </div>
-                    </div>
-                    
-                    <div className="invoice-list">
-                        {isInvoiceLoading ? (
-                            <p>Loading invoices...</p>
-                        ) : filteredInvoices.length > 0 ? (
-                            filteredInvoices.map(invoice => (
-                                <div key={invoice.id} className="invoice-item">
-                                    <div className="invoice-details">
-                                        <p className="invoice-id">Invoice #{invoice.id}</p>
-                                        <span className={`status-badge ${getStatusClass(invoice.status)}`}>
-                                            {invoice.status}
-                                        </span>
-                                    </div>
-                                    <p className="customer-name">Customer: {invoice.customerName}</p>
-                                    <p className="due-date">Due: {invoice.dueDate}</p>
-                                    <div className="item-actions">
-                                        <button 
-                                            onClick={() => handleEditInvoice(invoice)} 
-                                            className="btn-edit"
-                                        >
-                                            Edit
-                                        </button>
-                                        <button 
-                                            onClick={() => handleDeleteInvoice(invoice)} 
-                                            className="btn-delete"
-                                        >
-                                            Delete
-                                        </button>
-                                        <button 
-                                            onClick={() => setPreviewInvoice(invoice)} 
-                                            className="btn-view"
-                                        >
-                                            View
-                                        </button>
-                                        {invoice.status !== 'paid' && (
-                                            <button 
-                                                onClick={() => {
-                                                    console.log('Setting invoice to pay:', invoice);
-                                                    setInvoiceToPay(invoice);
-                                                }}
-                                                className="btn-pay"
-                                            >
-                                                Pay
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <p className="no-invoices-message">No invoices found.</p>
-                        )}
-                    </div>
-                </div>
-            </main>
-
-            {/* Invoice Preview Modal */}
-            {previewInvoice && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h2 className="modal-title">Invoice #{previewInvoice.id}</h2>
-                            <button onClick={() => setPreviewInvoice(null)} className="modal-close-btn">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="icon-close" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-                        <div className="invoice-details-grid">
-                            <div>
-                                <h3 className="details-heading">Customer Details</h3>
-                                <p><strong>Name:</strong> {previewInvoice.customerName}</p>
-                                <p><strong>Email:</strong> {previewInvoice.customerEmail}</p>
-                            </div>
-                            <div>
-                                <h3 className="details-heading">Invoice Details</h3>
-                                <p><strong>Due Date:</strong> {previewInvoice.dueDate}</p>
-                                <p><strong>Status:</strong> <span className={`status-badge ${getStatusClass(previewInvoice.status)}`}>{previewInvoice.status}</span></p>
-                            </div>
-                        </div>
-                        <h4 className="items-heading">Line Items</h4>
-                        <table className="items-table">
-                            <thead>
-                                <tr>
-                                    <th className="table-header">Description</th>
-                                    <th className="table-header">Qty</th>
-                                    <th className="table-header text-right">Price</th>
-                                    <th className="table-header text-right">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {previewInvoice.lineItems && Array.isArray(previewInvoice.lineItems) && previewInvoice.lineItems.map((item, index) => (
-                                    <tr key={index}>
-                                        <td className="table-cell">{item.description}</td>
-                                        <td className="table-cell">{item.quantity}</td>
-                                        <td className="table-cell text-right">${parseFloat(item.price).toFixed(2)}</td>
-                                        <td className="table-cell text-right">${(item.quantity * parseFloat(item.price)).toFixed(2)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        
-                        <div className="totals-summary">
-                            <p className="subtotal">Subtotal: ${previewInvoice.lineItems && Array.isArray(previewInvoice.lineItems) ? previewInvoice.lineItems.reduce((sum, item) => sum + (item.quantity * parseFloat(item.price)), 0).toFixed(2) : '0.00'}</p>
-                            <p className="discount">Discount: {previewInvoice.discount}%</p>
-                            <p className="total-preview">Total: ${(previewInvoice.lineItems && Array.isArray(previewInvoice.lineItems) ? previewInvoice.lineItems.reduce((sum, item) => sum + (item.quantity * parseFloat(item.price)), 0) * (1 - previewInvoice.discount / 100) : 0).toFixed(2)}</p>
-                            <p className="amount-paid">Amount Paid: ${previewInvoice.payments && Array.isArray(previewInvoice.payments) ? previewInvoice.payments.reduce((sum, payment) => sum + payment.amount, 0).toFixed(2) : '0.00'}</p>
-                            <p className="balance">Balance: ${(previewInvoice.lineItems && Array.isArray(previewInvoice.lineItems) ? previewInvoice.lineItems.reduce((sum, item) => sum + (item.quantity * parseFloat(item.price)), 0) * (1 - previewInvoice.discount / 100) : 0 - (previewInvoice.payments ? previewInvoice.payments.reduce((sum, payment) => sum + payment.amount, 0) : 0)).toFixed(2)}</p>
-                        </div>
-                        
-                        <div className="modal-actions">
-                            <button onClick={() => setPreviewInvoice(null)} className="btn-secondary close-button">
-                                Close
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Delete Confirmation Modal */}
-            {invoiceToDelete && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <p className="modal-title">Confirm Deletion</p>
-                        <p className="modal-text">Are you sure you want to delete this invoice? This action cannot be undone.</p>
-                        <div className="modal-actions">
-                            <button onClick={handleCancelDelete} className="modal-cancel-btn">
-                                Cancel
-                            </button>
-                            <button onClick={handleConfirmDelete} className="modal-delete-btn">
-                                Delete
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Payment Modal */}
-            {invoiceToPay && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <p className="modal-title">Record Payment for Invoice #{invoiceToPay.id}</p>
-                        <div className="payment-details">
-                            <p><strong>Total Amount:</strong> ${(
-                                invoiceToPay.lineItems && Array.isArray(invoiceToPay.lineItems) 
-                                    ? invoiceToPay.lineItems.reduce((sum, item) => sum + (item.quantity * parseFloat(item.price)), 0) * (1 - (invoiceToPay.discount || 0) / 100)
-                                    : 0
-                            ).toFixed(2)}</p>
-                            <p><strong>Amount Paid:</strong> ${(invoiceToPay.payments && Array.isArray(invoiceToPay.payments) ? invoiceToPay.payments.reduce((sum, payment) => sum + payment.amount, 0) : 0).toFixed(2)}</p>
-                            <p><strong>Remaining Balance:</strong> ${(
-                                invoiceToPay.lineItems && Array.isArray(invoiceToPay.lineItems) 
-                                    ? (invoiceToPay.lineItems.reduce((sum, item) => sum + (item.quantity * parseFloat(item.price)), 0) * (1 - (invoiceToPay.discount || 0) / 100)) - (invoiceToPay.payments ? invoiceToPay.payments.reduce((sum, payment) => sum + payment.amount, 0) : 0)
-                                    : 0
-                            ).toFixed(2)}</p>
-                        </div>
-                        <div className="form-group">
-                            <label htmlFor="payAmount" className="input-label">Payment Amount</label>
-                            <input
-                                id="payAmount"
-                                type="number"
-                                value={payAmount}
-                                onChange={(e) => setPayAmount(e.target.value)}
-                                className="input-field"
-                                min="0"
-                                step="0.01"
-                                placeholder="Enter payment amount"
-                            />
-                        </div>
-                        <div className="modal-actions">
-                            <button 
-                                onClick={() => { 
-                                    console.log('Cancel payment clicked');
-                                    setInvoiceToPay(null); 
-                                    setPayAmount(''); 
-                                }} 
-                                className="modal-cancel-btn"
-                            >
-                                Cancel
-                            </button>
-                            <button 
-                                onClick={() => {
-                                    console.log('Record Payment button clicked');
-                                    handlePayment();
-                                }} 
-                                className="modal-save-btn"
-                            >
-                                Record Payment
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
+    // Update the savedInvoices list with the new details
+    setSavedInvoices(prev =>
+      prev.map(inv =>
+        inv.id === updatedInvoice.id ? updatedInvoice : inv
+      )
     );
+
+    // Update the currently viewed invoice in state
+    setSelectedInvoice(updatedInvoice);
+    setPaymentAmount("");
+    setTransactionStatus(`Payment of ₹${amount.toFixed(2)} via ${paymentMethod} recorded successfully.`);
+
+    alert(`Payment of ₹${amount.toFixed(2)} recorded for Invoice #${selectedInvoice.id}`);
+  };
+
+  const renderInvoicePreview = () => {
+    if (!selectedInvoice) {
+      return (
+        <div className="muted">
+          Select an invoice from the right to view or record payment.
+        </div>
+      );
+    }
+    const balanceDue = selectedInvoice.balanceDue !== undefined 
+      ? selectedInvoice.balanceDue 
+      : selectedInvoice.total;
+    return (
+      <div>
+        <h4>Invoice #{selectedInvoice.id}</h4>
+        <p><strong>Customer:</strong> {selectedInvoice.customerName}</p>
+        <p><strong>Email:</strong> {selectedInvoice.customerEmail}</p>
+        <p><strong>Status:</strong> <span className={selectedInvoice.status === 'Paid' ? 'paid-status' : 'unpaid-status'}>{selectedInvoice.status}</span></p>
+        <hr />
+        <h5>Items:</h5>
+        <table className="invoice-lines-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Qty</th>
+              <th>Price (₹)</th>
+              <th>Line Total (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {selectedInvoice.lines.map((line) => (
+              <tr key={line.id}>
+                <td>{line.name}</td>
+                <td>{line.quantity}</td>
+                <td>{line.price.toFixed(2)}</td>
+                <td>{(line.quantity * line.price).toFixed(2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <hr />
+        <p><strong>Subtotal:</strong> ₹{selectedInvoice.subtotal.toFixed(2)}</p>
+        <p><strong>Discount:</strong> ₹{selectedInvoice.discount.toFixed(2)}</p>
+        <h2><strong style={{ fontSize: "20px" }}>Total: </strong> ₹{selectedInvoice.total.toFixed(2)}</h2>
+
+
+        {/* <div> payment transtaction status</div> */}
+        {/* This is the new div for the transaction status */}
+    {/* <div className="payment-transaction-status" style={{ color: "green", fontWeight: "bold" }}>
+        {transactionStatus}
+    </div> */}
+    {/* Display list of payments if they exist */}
+            {selectedInvoice.payments && selectedInvoice.payments.length > 0 && (
+                <div className="payment-history">
+                    <hr />
+                    <h5>Payment Transactions:</h5>
+                    {/* <ul>
+                        {selectedInvoice.payments.map(payment => (
+                            <li key={payment.id}>
+                                <strong>₹{payment.amount.toFixed(2)}</strong> via {payment.method} on {payment.date}
+                            </li>
+                        ))}
+                    </ul> */}
+                    <table border="1" cellPadding="6" style={{ borderCollapse: 'collapse', width: '100%' }}>
+  <thead>
+    <tr>
+      <th>Amount (₹)</th>
+      <th>Mode</th>
+      <th>Date</th>
+    </tr>
+  </thead>
+  <tbody>
+    {selectedInvoice.payments.map(payment => (
+      <tr key={payment.id}>
+        <td>{payment.amount.toFixed(2)}</td>
+        <td>{payment.method}</td>
+        <td>{payment.date}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+                </div>
+            )}
+            
+            {/* Display balance due and payment form */}
+            {selectedInvoice.status !== 'Paid' && (
+                <div className="payment-details">
+                    <p><strong>Balance Due:</strong> ₹{balanceDue.toFixed(2)}</p>
+                </div>
+            )}
+            
+            <div className="payment-section">
+                {balanceDue > 0 ? (
+                    <>
+                        <input
+                            id="payAmt"
+                            type="number"
+                            placeholder={`Payment amount (Max: ${balanceDue.toFixed(2)})`}
+                            value={paymentAmount}
+                            onChange={(e) => setPaymentAmount(e.target.value)}
+                        />
+                        <select
+                            id="payMethod"
+                            value={paymentMethod}
+                            onChange={(e) => setPaymentMethod(e.target.value)}
+                        >
+                            <option value="Google Pay">Google Pay</option>
+                            <option value="PhonePe">PhonePe</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <button onClick={recordPayment}>Record Payment</button>
+                        <br />
+                        <div style={{ color: "green", fontWeight: "bold" }}>{transactionStatus}</div>
+                        <img src="" alt="Payment Image" ></img>
+                        <button onClick={printInvoice}>Download Invoice</button>
+
+                    </>
+                ) : (
+                    <div className="paid-message">
+                        This invoice has been marked as paid.
+                        <br />
+                        <button onClick={printInvoice}>Download Invoice</button>
+
+                    </div>
+                )}
+            </div>
+        <br />
+        <div>
+          {/* {selectedInvoice.status === 'Unpaid' ? (
+            <>
+              <input 
+                id="payAmt" 
+                type="number" 
+                placeholder="Payment amount"
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+              />
+              <select 
+                id="payMethod"
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+              >
+                <option value="Google Pay">Google Pay</option>
+                <option value="PhonePe">PhonePe</option>
+                <option value="Cash">Cash</option>
+                <option value="Other">Other</option>
+              </select>
+              <button onClick={recordPayment}>Record Payment</button>
+              <br />
+              <img src="" alt="Payment Image" ></img>
+              <button onClick={() => window.print()}>Download Invoice</button>
+            </>
+          ) : (
+            <div className="paid-message">
+              This invoice has been marked as paid.
+              <br />
+              <button onClick={() => window.print()}>Download Invoice</button>
+            </div>
+          )} */}
+
+          {/* {selectedInvoice.status !== 'Paid' && (
+                <div className="payment-details">
+                    <p><strong>Balance Due:</strong> ₹{balanceDue.toFixed(2)}</p>
+                </div>
+            )} */}
+            
+            {/* <div className="payment-section">
+                {balanceDue > 0 ? (
+                    <>
+                        <input 
+                            id="payAmt" 
+                            type="number" 
+                            placeholder="Payment amount"
+                            value={paymentAmount}
+                            onChange={(e) => setPaymentAmount(e.target.value)}
+                        />
+                        <select 
+                            id="payMethod"
+                            value={paymentMethod}
+                            onChange={(e) => setPaymentMethod(e.target.value)}
+                        >
+                            <option value="Google Pay">Google Pay</option>
+                            <option value="PhonePe">PhonePe</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <button onClick={recordPayment}>Record Payment</button>
+                        <br />
+                        <img src="" alt="Payment Image" ></img>
+                        <button onClick={() => window.print()}>Download Invoice</button>
+                    </>
+                ) : (
+                    <div className="paid-message">
+                        This invoice has been marked as paid.
+                        <br />
+                        <button onClick={() => window.print()}>Download Invoice</button>
+                    </div>
+                )}
+            </div> */}
+            
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="wrap">
+      <header>
+        <h1>Billing — Invoice & Payment Manager</h1>
+        <div className="muted">Data stored in your browser (localStorage).</div>
+      </header>
+
+      {/* LEFT: Create / Edit Invoice */}
+      <section className="card">
+        <h3>Create / Edit Invoice</h3>
+        <div style={{ position: "relative" }}>
+          <label htmlFor="custName">Customer name</label>
+          <input
+            id="custName"
+            placeholder="e.g. Rajesh Kumar"
+            value={customerName}
+            onChange={handleNameChange}
+          />
+          {suggestions.length > 0 && (
+            <ul className="suggestions">
+              {suggestions.map((cust) => (
+                <li key={cust.id} onClick={() => handleSelectCustomer(cust)}>
+                  {cust.name}
+                </li>
+              ))}
+            </ul>
+          )}
+          <label htmlFor="custEmail">Customer email</label>
+          <input
+            id="custEmail"
+            placeholder="email"
+            value={customerEmail}
+            onChange={(e) => setCustomerEmail(e.target.value)}
+          />
+          <label htmlFor="custPhone">Customer phone</label>
+          <input
+            id="custPhone"
+            placeholder="phone"
+            value={customerPhone}
+            onChange={(e) => setCustomerPhone(e.target.value)}
+          />
+          <label htmlFor="custAddress">Customer address</label>
+          <input
+            id="custAddress"
+            placeholder="Address"
+            value={customerAddress}
+            onChange={(e) => setCustomerAddress(e.target.value)}
+          />
+          <label htmlFor="dueDate">Invoice due date</label>
+          <input id="dueDate" type="date" />
+        </div>
+        <div>
+          <h4 className="section-title">Products / Services</h4>
+          <div className="products-container">
+            {products.length > 0 ? (
+              <table className="products-table">
+                <thead>
+                  <tr>
+                    <th>Product Name</th>
+                    <th>Price (₹)</th>
+                    <th>Quantity</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map((product) => (
+                    <tr key={product.id}>
+                      <td>{product.name}</td>
+                      <td>{product.price}</td>
+                      <td>
+                        <input
+                          type="number"
+                          min="1"
+                          value={quantities[product.id] ?? ""}
+                          onChange={(e) =>
+                            setQuantities({ ...quantities, [product.id]: e.target.value })
+                          }
+                        />
+                      </td>
+                      <td>
+                        <button onClick={() => addToInvoice(product)}>Add</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p>No products available</p>
+            )}
+          </div>
+          <details className="add-custom">
+            <summary className="muted">Add custom item</summary>
+            <div className="custom-item-form">
+              <input
+                type="text"
+                placeholder="Name"
+                value={customItem.name}
+                onChange={(e) => setCustomItem({ ...customItem, name: e.target.value })}
+              />
+              <input
+                type="number"
+                placeholder="Price"
+                value={customItem.price}
+                onChange={(e) => setCustomItem({ ...customItem, price: e.target.value })}
+              />
+              <input
+                type="number"
+                placeholder="Qty"
+                value={customItem.quantity}
+                onChange={(e) => setCustomItem({ ...customItem, quantity: e.target.value })}
+              />
+              <button onClick={() => addToInvoice({ ...customItem, id: `custom-${Date.now()}` })}>
+                Add
+              </button>
+            </div>
+          </details>
+          <h4 className="section-title">Invoice Lines</h4>
+          {invoiceLines.length > 0 ? (
+            <table className="invoice-lines-table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Qty</th>
+                  <th>Price (₹)</th>
+                  <th>Line Total (₹)</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoiceLines.map((line) => (
+                  <tr key={line.id}>
+                    <td>{line.name}</td>
+                    <td style={{ width: 90 }}>
+                      <input
+                        type="number"
+                        min="1"
+                        value={line.quantity}
+                        onChange={(e) => updateLineQty(line.id, e.target.value)}
+                      />
+                    </td>
+                    <td>{Number(line.price).toFixed(2)}</td>
+                    <td>
+                      {(Number(line.price) * Number(line.quantity)).toFixed(2)}
+                    </td>
+                    <td>
+                      <button className="ghost" onClick={() => removeLine(line.id)}>
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="muted">No items added yet.</div>
+          )}
+          <div className="totals-row">
+            <div>
+              <label htmlFor="discount">Discount (%)</label>
+              <input
+                id="discount"
+                type="number"
+                min="0"
+                max="100"
+                value={discountPct}
+                onChange={(e) => setDiscountPct(e.target.value)}
+                className="discount-input"
+              />
+            </div>
+            <div className="totals-display">
+              <div className="muted">Subtotal: <span>{subtotal.toFixed(2)}</span></div>
+              <div className="muted">
+                Discount: <span>-{discountAmount.toFixed(2)}</span>
+              </div>
+              <div className="muted">
+                Total: <strong>{total.toFixed(2)}</strong>
+              </div>
+            </div>
+          </div>
+          <div className="actions-row">
+            <button id="saveInvoice" onClick={saveInvoice}>
+              Save Invoice
+            </button>
+            <button
+              id="newInvoice"
+              className="ghost"
+              onClick={() => {
+                setInvoiceLines([]);
+                setCustomerName("");
+                setCustomerEmail("");
+                setCustomerPhone("");
+                setCustomerAddress("");
+                setDiscountPct(0);
+              }}
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* RIGHT: Saved invoices */}
+      <aside className="card">
+        <h3>Saved Invoices</h3>
+        <div className="search-row">
+          <input
+            id="searchInv"
+            placeholder="Search by item name or id"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <button id="exportJson" className="small" onClick={exportJson}>Export</button>
+        </div>
+        <div className="invoices-list" id="invoicesList">
+          {filteredInvoices.length > 0 ? (
+            filteredInvoices.map((inv) => (
+              <div key={inv.id} className="invoice-card">
+                <strong>Invoice #{inv.id}</strong>
+                <div className={inv.status === 'Paid' ? 'paid-status' : 'unpaid-status'}>Status: {inv.status}</div>
+                <div>Customer: {inv.customerName}</div>
+                <div>Total: ₹{inv.total.toFixed(2)}</div>
+                <div className="invoice-actions">
+                  <button className="small info" onClick={() => viewInvoice(inv.id)}>View</button>
+                  <button className="small warning" onClick={() => editInvoice(inv.id)}>Edit</button>
+                  <button className="small danger" onClick={() => deleteInvoice(inv.id)}>Delete</button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="muted">No invoices found.</div>
+          )}
+        </div>
+      </aside>
+{/* ------------------------------------------------------------------------------------------------------- */}
+      {/* Invoice Preview / Details */}
+      <section className="card invoice-preview">
+        <h3>Invoice Preview / Details</h3>
+        <br />
+        <div id="previewArea" className="preview-box">
+          {renderInvoicePreview()}
+        </div>
+        <div id="qrcode" className="qr-area"></div>
+      </section>
+
+      <footer className="muted">
+        Simple demonstrative app. Not production-ready. Use as example for learning.
+      </footer>
+    </div>
+  );
+};
+
+const CustomItem = ({ onAdd }) => {
+  const [desc, setDesc] = useState("");
+  const [qty, setQty] = useState("");
+  const [price, setPrice] = useState("");
+
+  const add = () => {
+    const q = Number(qty);
+    const p = Number(price);
+    if (!desc.trim() || !q || !p) return;
+    onAdd({ id: `custom-${Date.now()}`, name: desc, price: p, quantity: q });
+    setDesc(""); setQty(""); setPrice("");
+  };
+
+  return (
+    <div>
+      <input
+        id="customDesc"
+        placeholder="Description"
+        value={desc}
+        onChange={(e) => setDesc(e.target.value)}
+      />
+      <div className="custom-inputs">
+        <input
+          id="customQty"
+          type="number"
+          min="1"
+          placeholder="Qty"
+          className="qty-input"
+          value={qty}
+          onChange={(e) => setQty(e.target.value)}
+        />
+        <input
+          id="customPrice"
+          type="number"
+          min="0"
+          placeholder="Price"
+          className="price-input"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+        />
+        <button id="addCustom" onClick={add}>Add</button>
+      </div>
+    </div>
+  );
 };
 
 export default Invoice;

@@ -1,0 +1,300 @@
+:root {
+  --accent: #0ea5a4;
+  --muted: #6b7280;
+  --bg: #f8fafc;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: Inter, system-ui, Arial;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: #0f172a;
+  padding: 0px;
+}
+.products-container {
+  margin-top: 20px;
+}
+
+.products-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.products-table th,
+.products-table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: left;
+}
+
+.products-table th {
+  background: #f4f4f4;
+}
+
+.products-table input[type="number"] {
+  width: 70px;
+  padding: 5px;
+}
+
+
+.wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 20px;
+}
+
+header {
+  grid-column: 1/-1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 6px 18px rgba(2, 6, 23, 0.06);
+}
+
+label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #e6e9ee;
+  margin-bottom: 10px;
+}
+
+.products-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.product {
+  padding: 10px;
+  border: 1px dashed #e6e9ee;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+button {
+  background: var(--accent);
+  border: none;
+  color: white;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.ghost {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid #d1f5f4;
+}
+
+.small {
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
+.invoice-preview {
+  margin-top: 12px;
+  grid-column: 1/-1;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 8px;
+  border-bottom: 1px solid #f1f5f9;
+  text-align: left;
+  font-size: 14px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.invoices-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 520px;
+  overflow: auto;
+}
+
+.invoice-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #eef2f7;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.status-paid {
+  background: #ddfbee;
+  color: #065f46;
+}
+
+.status-partial {
+  background: #fff7ed;
+  color: #92400e;
+}
+
+.status-unpaid {
+  background: #fff1f2;
+  color: #991b1b;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+}
+
+.flex {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.line-qty {
+  width: 60px;
+}
+
+.line-price {
+  width: 100px;
+}
+
+.right {
+  text-align: right;
+}
+
+footer {
+  grid-column: 1/-1;
+  margin-top: 12px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* ---- Extra helper classes for React JSX ---- */
+.section-title {
+  margin: 8px 0;
+}
+
+.add-custom {
+  margin-top: 8px;
+}
+
+.custom-inputs {
+  display: flex;
+  gap: 8px;
+}
+
+.qty-input {
+  width: 80px;
+}
+
+.price-input {
+  width: 130px;
+}
+
+.discount-input {
+  width: 120px;
+}
+
+.totals-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.totals-display {
+  text-align: right;
+}
+
+.actions-row {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.search-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.preview-box {
+  min-height: 120px;
+}
+
+.qr-area {
+  margin-top: 12px;
+  text-align: center;
+}
+/* right side */
+
+.invoice-actions {
+  display: flex;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.invoice-actions .small {
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.invoice-actions .success { background: #4CAF50; color: white; }
+.invoice-actions .info { background: #2196F3; color: white; }
+.invoice-actions .warning { background: #FFC107; color: black; }
+.invoice-actions .danger { background: #F44336; color: white; }
