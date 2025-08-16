@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import '../Style/Nav.css';
-import logo from '../Image/HRMlogo.png';
+import logo from '../Image/bill1.jpg';
 
 const Nav = () => {
   return (

@@ -11,13 +11,17 @@ const MainDashboard = () => {
   return (
     <div>
       <nav className={Style.subNavbar}>
+         <div class={Style.logo_admin}>
+            A
+         </div>
+
         <Link to="/MainDashboard/dashboard">Dashboard</Link>
         <Link to="/MainDashboard/customer">Customer</Link>
         <Link to="/MainDashboard/product">Product</Link>
         <Link to="/MainDashboard/invoice">Invoice</Link>
         <Link to="/MainDashboard/report">Report</Link>
       </nav>
-      Admin Login
+     
 
       <div >
         <Routes>

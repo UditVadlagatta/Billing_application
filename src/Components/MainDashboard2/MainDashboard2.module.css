@@ -20,3 +20,42 @@ align-items: center;
     text-decoration: none;
     font-size: 1.5rem;
 }
+
+.subNavbar{
+/* background-color: red; */
+width: 100%;
+height: 3rem;
+display: flex;
+justify-content: center;
+align-items: center;
+ gap: 200px;
+  background-color: #f0f0f0;
+   padding: 10px;
+   position: sticky;
+  top: 70px;
+  background-color: #ffffff;
+  z-index: 1000; 
+  padding: 10px 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
+  }
+
+.subNavbar a{
+    text-decoration: none;
+    font-size: 1.5rem;
+}
+
+.logo_user {
+  font-family: "Poppins", sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: #2563eb; /* Blue */
+  text-align: center;
+  padding: 12px 20px;
+  border: 2px solid #2563eb;
+  border-radius: 50%;
+  display: inline-block;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: white;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  letter-spacing: 1px;
+}

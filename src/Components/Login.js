@@ -107,9 +107,9 @@ const App = () => {
       </div>
 
       {/* Footer */}
-      <footer className="footer" style={{marginBottom:'-16px'}}>
+{/*       <footer className="footer" style={{marginBottom:'-16px'}}>
         <p>&copy; 2025 MyCompany. All rights reserved.</p>
-      </footer>
+      </footer> */}
     </div>
   );
 };

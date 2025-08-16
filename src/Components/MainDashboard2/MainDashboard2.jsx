@@ -11,7 +11,9 @@ const MainDashboard2 = () => {
   return (
     <div> 
       <nav className={Style.subNavbar}>
-        
+        <div class={Style.logo_user}>
+                    U
+        </div>
         <Link to="/MainDashboard2/dashboard">Dashboard</Link>
         <Link to="/MainDashboard2/customer">Customer</Link>
         <Link to="/MainDashboard2/product">Product</Link>

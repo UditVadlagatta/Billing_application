@@ -15,14 +15,18 @@ const Home = () => {
           <button>MORE INFO</button>
           <br/>
 
-          
- <Link to="/MainDashboard">Go to Dashboard</Link>
+      <br/>    
+ <Link to="/MainDashboard">Admin - Go to Dashboard</Link>
+ <br/><br/>
+ <Link to="/MainDashboard2">User - Go to Dashboard</Link>
+ 
           {/* <a href={MainDashboard/MainDashboard.js} alt="">Link</a> */}
         </div>
       </div>
       <footer className="footer">
         <p>&copy; 2025 MyCompany. All rights reserved.</p>
       </footer>
+      <div className='box'></div>
     </div>
   );
 };
