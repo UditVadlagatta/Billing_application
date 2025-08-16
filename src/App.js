@@ -10,6 +10,7 @@ import './App.css';
 
 import MainDashboard from './Components/MainDashboard/MainDashboard';
 import MainDashboard2 from './Components/MainDashboard2/MainDashboard2';
+// import Invoice from './Components/MainDashboard/Invoice';
 
 function App() {
   const location = useLocation();
@@ -34,6 +35,8 @@ function App() {
               <Route path="/register" element={<Registration />} />
               <Route path="/MainDashboard/*" element={<MainDashboard />} />
               <Route path="/MainDashboard2/*" element={<MainDashboard2 />} />
+
+              {/* <Route path="/MainDashboard2/Invoice" element={<Invoice />} /> */}
             </Routes>
           </div>
         </CSSTransition>
