@@ -1,0 +1,95 @@
+-- Create the database if it doesn't already exist
+CREATE DATABASE IF NOT EXISTS auth_db;
+USE auth_db;
+SET SQL_SAFE_UPDATES = OFF;
+
+-- Create the users table to store user data
+CREATE TABLE IF NOT EXISTS users (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL
+);
+
+-- Create the products table
+CREATE TABLE IF NOT EXISTS products (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    category VARCHAR(255),
+    price DECIMAL(10, 2) NOT NULL,
+    description TEXT
+);
+
+-- Create the customers table
+CREATE TABLE IF NOT EXISTS customers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    phone VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
+    address TEXT
+);
+
+-- Create the invoices table
+CREATE TABLE IF NOT EXISTS invoices (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT NOT NULL,
+    invoice_date DATE NOT NULL, -- Added to match Invoice.java
+    discount DECIMAL(10, 2) DEFAULT 0.0, -- Matches Invoice.discount
+    total_amount DECIMAL(10, 2) NOT NULL, -- Renamed from total to match Invoice.totalAmount
+    status ENUM('Unpaid', 'Partially Paid', 'Paid') DEFAULT 'Unpaid',
+    balance_due DECIMAL(10, 2), -- Matches Invoice.balanceDue
+    due_date DATE, -- Added to match Invoice.dueDate
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+);
+
+-- Create the invoice_items table
+CREATE TABLE IF NOT EXISTS invoice_items (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    invoice_id BIGINT NOT NULL,
+    product_id INT NULL, -- Nullable for custom items
+    name VARCHAR(255) NOT NULL, -- For custom item name or product name
+    price DECIMAL(10, 2) NOT NULL,
+    quantity INT NOT NULL,
+    FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
+);
+
+-- Create the payments table
+CREATE TABLE IF NOT EXISTS payments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    invoice_id BIGINT NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL,
+    method VARCHAR(50) NOT NULL,
+    date VARCHAR(50) NOT NULL, -- Changed to VARCHAR to match Payment.date
+    FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
+);
+
+-- Insert sample data for testing
+INSERT INTO users (username, password) VALUES
+('udit', '$2a$10$XURPShlN2W4rB15MFrLxeO/3o/1Ce3fSK1qp0Z3FXT6r4N0c.2O4i'), -- Password: admin123
+('user', '$2a$10$XURPShlN2W4rB15MFrLxeO/3o/1Ce3fSK1qp0Z3FXT6r4N0c.2O4i'); -- Password: user123
+
+INSERT INTO customers (name, phone, email, address) VALUES
+('Rajesh Kumar', '9876543210', 'rajesh@example.com', '123 Main St, Delhi'),
+('Priya Sharma', '8765432109', 'priya@example.com', '456 Park Ave, Mumbai');
+
+INSERT INTO products (name, category, price, description) VALUES
+('Laptop', 'Electronics', 50000.00, 'High-performance laptop'),
+('Headphones', 'Accessories', 2000.00, 'Wireless headphones'),
+('Mouse', 'Accessories', 500.00, 'Ergonomic mouse');
+
+
+
+USE auth_db;
+SET SQL_SAFE_UPDATES = OFF;
+
+-- Show tables and data
+SHOW TABLES;
+SELECT * FROM users;
+SELECT * FROM customers;
+SELECT * FROM products;
+SELECT * FROM invoices;
+SELECT * FROM invoice_items;
+SELECT * FROM payments;
+
+-- drop database auth_db;

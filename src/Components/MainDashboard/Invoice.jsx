@@ -11,7 +11,7 @@ const Invoice = () => {
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
-  const [dueDate, setDueDate] = useState("");
+  // const [dueDate, setDueDate] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [allCustomers, setAllCustomers] = useState([]);
   const [products, setProducts] = useState([]);
@@ -25,6 +25,12 @@ const Invoice = () => {
   const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [transactionStatus, setTransactionStatus] = useState("");
   const [error, setError] = useState("");
+
+
+  const [dueDate, setDueDate] = useState("");
+  const [fetchedDueDate, setFetchedDueDate] = useState(""); // New state for fetched due date
+  const [invoiceId, setInvoiceId] = useState(null); // Assuming you have a way to get the invoice ID
+
 
   const subtotal = invoiceLines.reduce(
     (sum, line) => sum + Number(line.price) * Number(line.quantity),
@@ -135,6 +141,48 @@ const Invoice = () => {
         setError("Failed to fetch invoices: " + err.message);
       });
   }, []);
+
+  useEffect(() => {
+    // This useEffect will run once when the component mounts
+    // to fetch the initial due date from the API.
+    const fetchDueDate = async () => {
+      try {
+        const response = await fetch("http://localhost:8080/api/invoices/duedate"); // Replace with your actual API endpoint
+        if (!response.ok) {
+          throw new Error("Failed to fetch due date");
+        }
+        const data = await response.json();
+        setFetchedDueDate(data.dueDate); // Assuming the API returns an object like { "dueDate": "YYYY-MM-DD" }
+      } catch (error) {
+        console.error("Error fetching due date:", error);
+      }
+    };
+
+    fetchDueDate();
+  }, []); 
+
+
+  useEffect(() => {
+    // This useEffect will run when the invoiceId is available
+    if (invoiceId) {
+      const fetchDueDate = async () => {
+        try {
+          const response = await fetch(`http://localhost:8080/api/invoices/${invoiceId}/duedate`);
+          if (!response.ok) {
+            throw new Error("Failed to fetch due date");
+          }
+          const data = await response.json();
+          setDueDate(data); // Set the dueDate state directly with the fetched date string
+        } catch (error) {
+          console.error("Error fetching due date:", error);
+        }
+      };
+      fetchDueDate();
+    }
+  }, [invoiceId]); // The effect runs whenever the invoiceId changes
+
+
+  // 11111111111111111111111111111111111111111111111111111111111111
 
   // Autocomplete: filter suggestions
   const handleNameChange = (e) => {
@@ -574,6 +622,10 @@ const Invoice = () => {
           <tbody>
             {selectedInvoice.lines.map((line) => (
               <tr key={line.id}>
+
+                {/* <td>{`${inv.invoiceDate.day}-${inv.invoiceDate.month}-${inv.invoiceDate.year}`}</td> */}
+
+
                 <td>{line.name}</td>
                 <td>{line.quantity}</td>
                 <td>{Number(line.price).toFixed(2)}</td>
@@ -695,6 +747,10 @@ const Invoice = () => {
               ))}
             </ul>
           )}
+          
+
+
+
           <label htmlFor="custEmail">Customer email</label>
           <input
             id="custEmail"
@@ -716,13 +772,34 @@ const Invoice = () => {
             value={customerAddress}
             onChange={(e) => setCustomerAddress(e.target.value)}
           />
-          <label htmlFor="dueDate">Invoice due date</label>
+          
+          
+          {/* <label htmlFor="dueDate">Invoice due date</label>
           <input
             id="dueDate"
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
-          />
+          /> */}
+
+          {/* <label htmlFor="dueDate">Invoice due date</label>
+    <input
+      id="dueDate"
+      type="date"
+      value={fetchedDueDate || dueDate} // Use fetchedDueDate if available, otherwise use the user-entered dueDate
+      onChange={(e) => setDueDate(e.target.value)}
+    /> */}
+
+    <label htmlFor="dueDate">Invoice due date</label>
+    <input
+      id="dueDate"
+      type="date"
+      value={dueDate}
+      onChange={(e) => setDueDate(e.target.value)}
+    />
+
+
+
         </div>
         <div>
           <h4 className="section-title">Products / Services</h4>
@@ -898,6 +975,8 @@ const Invoice = () => {
       ? inv.payments.reduce((sum, p) => sum + Number(p.amount), 0)
       : 0;
 
+      
+
     // Determine status
     let invoiceStatus = "Unpaid";
     if (totalPaid === 0) {
@@ -926,6 +1005,7 @@ const Invoice = () => {
 
         <div>Customer: {inv.customerName}</div>
         <div>Total: ₹{inv.total.toFixed(2)}</div>
+
         <div className="invoice-actions">
           <button className="small info" onClick={() => viewInvoice(inv.id)}>
             View

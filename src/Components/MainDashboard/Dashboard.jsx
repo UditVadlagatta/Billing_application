@@ -269,6 +269,7 @@ const Dashboard = () => {
                           <td className="p-3 text-gray-600 font-mono">#{inv.id}</td>
                           <td className="p-3 font-medium text-gray-800">{inv.customer?.name || "N/A"}</td>
                           <td className="p-3 text-gray-700">₹{inv.totalAmount.toFixed(2)}</td>
+                          
                           <td
                             className={`p-3 font-semibold ${
                               inv.status === "PAID"
@@ -280,6 +281,14 @@ const Dashboard = () => {
                           >
                             {inv.status}
                           </td>
+                          {/* <td>{`${inv.invoiceDate.day}-${inv.invoiceDate.month}-${inv.invoiceDate.year}`}</td> */}
+{/* <td className="p-3 text-gray-500">
+  {inv.dueDate ? (
+    `${inv.dueDate.day}-${inv.dueDate.month}-${inv.dueDate.year}`
+  ) : (
+    'N/A'
+  )}
+</td> */}
                           <td className="p-3 text-gray-500">{inv.dueDate}</td>
                           <td className="p-3 flex gap-2">
                             <Link to={`/MainDashboard/invoice`} className="text-blue-600 hover:text-blue-800 transition-colors font-medium">

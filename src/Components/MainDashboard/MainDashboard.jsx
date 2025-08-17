@@ -11,7 +11,7 @@ const MainDashboard = () => {
   return (
     <div>
       <nav className={Style.subNavbar}>
-         <div class={Style.logo_admin}>
+         <div className={Style.logo_admin}>
             A
          </div>
 
