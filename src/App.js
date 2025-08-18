@@ -37,7 +37,8 @@ function App() {
               <Route path="/MainDashboard2/*" element={<MainDashboard2 />} />
 
               {/* <Route path="/MainDashboard2/Invoice" element={<Invoice />} /> */}
-            </Routes>
+              
+            </Routes> 
           </div>
         </CSSTransition>
       </TransitionGroup>
