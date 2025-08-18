@@ -635,8 +635,8 @@ const Invoice = () => {
           </tbody>
         </table>
         <hr />
-        <p><strong>Subtotal:</strong> ₹{selectedInvoice.subtotal.toFixed(2)}</p>
-        <p><strong>Discount:</strong> ₹{selectedInvoice.discount.toFixed(2)}</p>
+        {/* <p><strong>Subtotal:</strong> ₹{selectedInvoice.subtotal.toFixed(2)}</p> */}
+        {/* <p><strong>Discount:</strong> ₹{selectedInvoice.discount.toFixed(2)}</p> */}
         <h2>
           <strong style={{ fontSize: "20px" }}>Total: </strong> ₹{selectedInvoice.total.toFixed(2)}
         </h2>
@@ -904,7 +904,7 @@ const Invoice = () => {
           )}
           <div className="totals-row">
             <div>
-              <label htmlFor="discount">Discount (%)</label>
+              {/* <label htmlFor="discount">Discount (%)</label>
               <input
                 id="discount"
                 type="number"
@@ -913,14 +913,14 @@ const Invoice = () => {
                 value={discountPct}
                 onChange={(e) => setDiscountPct(e.target.value)}
                 className="discount-input"
-              />
+              /> */}
             </div>
             <div className="totals-display">
               <div className="muted">
-                Subtotal: <span>₹{subtotal.toFixed(2)}</span>
+                {/* Subtotal: <span>₹{subtotal.toFixed(2)}</span> */}
               </div>
               <div className="muted">
-                Discount: <span>₹{discountAmount.toFixed(2)}</span>
+                {/* Discount: <span>₹{discountAmount.toFixed(2)}</span> */}
               </div>
               <div className="muted">
                 Total: <strong>₹{total.toFixed(2)}</strong>
