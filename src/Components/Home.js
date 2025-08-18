@@ -16,9 +16,9 @@ const Home = () => {
           <br/>
 
       <br/>    
- <Link to="/MainDashboard">Admin - Go to Dashboard</Link>
+ {/* <Link to="/MainDashboard">Admin - Go to Dashboard</Link> */}
  <br/><br/>
- <Link to="/MainDashboard2">User - Go to Dashboard</Link>
+ {/* <Link to="/MainDashboard2">User - Go to Dashboard</Link> */}
  
           {/* <a href={MainDashboard/MainDashboard.js} alt="">Link</a> */}
         </div>

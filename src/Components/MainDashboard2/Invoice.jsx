@@ -1035,9 +1035,9 @@ const Invoice = () => {
         </div>
         <div id="qrcode" className="qr-area"></div>
       </section>
-      <footer className="muted">
+      {/* <footer className="muted">
         Simple demonstrative app. Not production-ready. Use as example for learning.
-      </footer>
+      </footer> */}
     </div>
   );
 };
